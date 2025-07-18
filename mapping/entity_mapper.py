@@ -47,51 +47,107 @@ class EntityMapper:
     def build_mapping(self, entity_ranges: Dict[int, EntityRange]):
         """
         Construit le mapping entité → DMX à partir des plages reçues (CONFIG) et de la config système.
+        CORRECTION : Calcul correct des univers et canaux DMX selon la vraie structure.
         Args:
             entity_ranges (Dict[int, EntityRange]): Dictionnaire {entity_start: EntityRange}
         """
+        if not entity_ranges:
+            print("[EntityMapper] Aucune plage d'entités fournie")
+            return
+            
         self.entity_to_dmx.clear()
+        total_mapped = 0
+        
         for plage in entity_ranges.values():
+            # Validation de la plage
+            if plage.entity_start > plage.entity_end:
+                print(f"[EntityMapper] Plage invalide: {plage.entity_start} > {plage.entity_end}")
+                continue
+                
             # Trouver le contrôleur qui englobe cette plage
+            controller_found = False
             for ctrl_name, ctrl in self.config.controllers.items():
                 if ctrl.start_entity <= plage.entity_start and plage.entity_end <= ctrl.end_entity:
+                    if not ctrl.universes:
+                        print(f"[EntityMapper] Contrôleur {ctrl_name} sans univers configurés")
+                        continue
+                        
                     nb_leds = plage.entity_end - plage.entity_start + 1
-                    # Trouver l'univers ArtNet correspondant à la plage (par index dans la liste des univers du contrôleur)
-                    plage_index = None
-                    try:
-                        plage_index = ctrl.universes.index(plage.payload_start) if plage.payload_start in ctrl.universes else None
-                    except Exception:
-                        plage_index = None
+                    # Calcul correct de l'offset dans le contrôleur
+                    entity_offset = plage.entity_start - ctrl.start_entity
+                    
                     for i in range(nb_leds):
                         entity_id = plage.entity_start + i
-                        # Univers ArtNet pour cette plage
-                        if plage_index is not None:
-                            universe = ctrl.universes[plage_index]
+                        current_offset = entity_offset + i
+                        
+                        # Calcul correct de l'univers (170 LEDs par univers selon spec)
+                        universe_index = current_offset // 170
+                        led_position_in_universe = current_offset % 170
+                        
+                        # Validation que l'univers existe
+                        if universe_index < len(ctrl.universes):
+                            universe = ctrl.universes[universe_index]
+                            # Calcul des canaux DMX (1-indexé, 3 canaux RGB)
+                            channel_start = (led_position_in_universe * 3) + 1
+                            
+                            # Validation des limites DMX (512 canaux max)
+                            if channel_start + 2 <= 512:
+                                self.entity_to_dmx[entity_id] = {
+                                    'controller_ip': ctrl.ip,
+                                    'universe': universe,
+                                    'r_channel': channel_start,
+                                    'g_channel': channel_start + 1,
+                                    'b_channel': channel_start + 2,
+                                }
+                                total_mapped += 1
+                            else:
+                                print(f"[EntityMapper] Canaux DMX > 512 pour entité {entity_id}: {channel_start}")
                         else:
-                            universe = ctrl.universes[0] if ctrl.universes else 0
-                        channel = (i * 3) + 1
-                        self.entity_to_dmx[entity_id] = {
-                            'controller_ip': ctrl.ip,
-                            'universe': universe,
-                            'r_channel': channel,
-                            'g_channel': channel + 1,
-                            'b_channel': channel + 2,
-                        }
-                    break  # On a trouvé le bon contrôleur pour cette plage, inutile de continuer
+                            print(f"[EntityMapper] Univers {universe_index} non disponible pour contrôleur {ctrl_name}")
+                    
+                    controller_found = True
+                    break
+                    
+            if not controller_found:
+                print(f"[EntityMapper] Aucun contrôleur trouvé pour plage {plage.entity_start}-{plage.entity_end}")
+        
+        print(f"[EntityMapper] Mapping terminé: {total_mapped} entités mappées")
 
     def map_entities_to_dmx(self, entities: List[EntityUpdate]) -> List[DMXPacket]:
         """
         Transforme une liste d'entités en paquets DMX groupés par contrôleur et univers.
+        CORRECTION : Validation complète des données avant mapping.
         Args:
             entities (List[EntityUpdate]): Liste d'entités à mapper
         Returns:
             List[DMXPacket]: Liste de paquets DMX prêts à l'envoi
         """
+        if not entities:
+            return []
+            
         dmx_packets = {}  # (ip, universe) -> DMXPacket
+        mapped_count = 0
+        error_count = 0
+        
         for entity in entities:
+            # Validation des valeurs RGB
+            if not (0 <= entity.r <= 255 and 0 <= entity.g <= 255 and 0 <= entity.b <= 255):
+                print(f"[EntityMapper] Valeurs RGB invalides pour entité {entity.id}: RGB({entity.r},{entity.g},{entity.b})")
+                error_count += 1
+                continue
+                
             if entity.id not in self.entity_to_dmx:
+                error_count += 1
                 continue  # Ignore les entités non mappées
+                
             mapping = self.entity_to_dmx[entity.id]
+            
+            # Validation supplémentaire des canaux DMX
+            if any(ch > 512 or ch < 1 for ch in [mapping['r_channel'], mapping['g_channel'], mapping['b_channel']]):
+                print(f"[EntityMapper] Canaux DMX invalides pour entité {entity.id}: R={mapping['r_channel']}, G={mapping['g_channel']}, B={mapping['b_channel']}")
+                error_count += 1
+                continue
+                
             key = (mapping['controller_ip'], mapping['universe'])
             if key not in dmx_packets:
                 dmx_packets[key] = DMXPacket(
@@ -99,10 +155,16 @@ class EntityMapper:
                     universe=mapping['universe'],
                     channels={}
                 )
+            
             pkt = dmx_packets[key]
             pkt.channels[mapping['r_channel']] = entity.r
             pkt.channels[mapping['g_channel']] = entity.g
             pkt.channels[mapping['b_channel']] = entity.b
+            mapped_count += 1
+            
+        if error_count > 0:
+            print(f"[EntityMapper] {error_count} entités ignorées (erreurs de validation)")
+            
         return list(dmx_packets.values())
 
     def optimize_mapping(self):
