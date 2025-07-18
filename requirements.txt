@@ -1,0 +1,5 @@
+# Dépendances minimales pour le projet LED Router
+# Compatible Raspberry Pi (ARM, Python 3.7+)
+pandas>=1.1.0
+pytest>=6.0.0
+# dataclasses est inclus nativement à partir de Python 3.7 

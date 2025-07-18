@@ -1,0 +1,11 @@
+---
+alwaysApply: true
+---
+Ne manque pas de documenter le code conformement aussi a la mise en place de la doc web pdoc
+
+- lorsque on fini de developper un tiket, il faut toujour rediger sa doc dans  test/doc_test/numero_tiket    conformement aux autres  ( c'est quoi le but du tiket , explication tres claire de exhausive de son importance pour le projet , explication de comment le tester concretement en cas reeell , des exemples tres concrette de cas reell)
+
+- code et donne toutjour des suggestion telque si apres je veux deployer sur linux , rapsbian (rapberry pi ), Mac , que ce soit deployable de sans aucun autre manip , sans complexiter 
+
+
+- nb: je suis null , je n'ai jamais fais cela , ne considere surtout pas que je conais quoi que se soit , je veux que tu m'aide , a mieux comprendre , donc quand je te demande quelque toi , toi en tant que exepert qui maitrise , la ou je fais des confusion il faut me rappeler a l'ordre , et surtout lorsque tu fais les commentaire , il faut etre assez detaille , claire , avec des exemple tes concrete car , moi qui est null , ca doit m'aider a mieux comprendre ..

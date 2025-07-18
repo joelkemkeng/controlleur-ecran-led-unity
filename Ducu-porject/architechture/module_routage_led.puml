@@ -1,0 +1,118 @@
+@startuml
+!theme plain
+title Architecture Logicielle du Module de Routage V2
+
+package "Module de Routage LED" {
+  
+  class EHubReceiver {
+    -port : int
+    -univers : int
+    -isListening : boolean
+    +startListening() : void
+    +stopListening() : void
+    +parseUpdateMessage(data : byte[]) : EntityUpdate[]
+    +parseConfigMessage(data : byte[]) : EntityConfig[]
+    +decompressPayload(data : byte[]) : byte[]
+  }
+  
+  class EntityToDMXMapper {
+    -mappingTable : Map<EntityID, DMXAddress>
+    -channelMode : ChannelMode
+    -offset : int
+    +configureMapping(mappingTable : Map, channelMode : string, offset : int) : void
+    +mapEntitiesToDMX(entities : EntityUpdate[]) : DMXData[]
+    +saveConfiguration(filePath : string) : void
+    +loadConfiguration(filePath : string) : void
+    +validateMapping() : boolean
+  }
+  
+  class PatchMapHandler {
+    -patches : Map<int, int>
+    -isEnabled : boolean
+    +addPatch(sourceChannel : int, targetChannel : int) : void
+    +removePatch(sourceChannel : int) : void
+    +applyPatches(dmxData : DMXData[]) : DMXData[]
+    +loadPatchFromFile(filePath : string) : void
+    +savePatchToFile(filePath : string) : void
+    +enablePatching() : void
+    +disablePatching() : void
+  }
+  
+  class ArtNetSender {
+    -targetControllers : List<ControllerConfig>
+    -maxFrameRate : int
+    -lastSendTime : long
+    +addController(ip : string, universes : int[]) : void
+    +removeController(ip : string) : void
+    +sendDMXPacket(dmxData : DMXData[], targetIP : string, universe : int) : void
+    +limitFrameRate() : void
+    +isNetworkReady() : boolean
+  }
+  
+  class MonitoringVisualization {
+    -eHubMonitorEnabled : boolean
+    -dmxMonitorEnabled : boolean
+    -artNetMonitorEnabled : boolean
+    +enableEHubMonitor() : void
+    +disableEHubMonitor() : void
+    +displayLiveEHubData(data : EntityUpdate[]) : void
+    +displayLiveDMXData(data : DMXData[]) : void
+    +displayArtNetTraffic(packets : ArtNetPacket[]) : void
+    +generateReport() : string
+  }
+  
+  class TestGenerator {
+    -testPatterns : Map<string, TestPattern>
+    +generateSequentialTest(entityRange : int[]) : EntityUpdate[]
+    +generateColorTest(color : RGB, entityRange : int[]) : EntityUpdate[]
+    +generateRandomTest(entityCount : int) : EntityUpdate[]
+    +simulateEHubMessages(pattern : TestPattern) : void
+  }
+  
+  class ConfigurationManager {
+    -currentConfig : SystemConfig
+    +saveSystemConfig(config : SystemConfig) : void
+    +loadSystemConfig() : SystemConfig
+    +validateConfig(config : SystemConfig) : boolean
+    +exportConfig(format : string) : void
+  }
+  
+  ' Relations
+  EHubReceiver --> EntityToDMXMapper : "fournit données\nupdate/config"
+  EntityToDMXMapper --> PatchMapHandler : "applique patches\nsi nécessaire"
+  EntityToDMXMapper --> ArtNetSender : "transmet\nDMX mappé"
+  PatchMapHandler --> EntityToDMXMapper : "retourne données\npatchées"
+  
+  EHubReceiver --> MonitoringVisualization : "données eHuB\nreçues"
+  EntityToDMXMapper --> MonitoringVisualization : "DMX généré"
+  ArtNetSender --> MonitoringVisualization : "trafic ArtNet"
+  
+  TestGenerator --> EHubReceiver : "génère messages\nde test"
+  ConfigurationManager --> EntityToDMXMapper : "configuration\nmapping"
+  ConfigurationManager --> PatchMapHandler : "configuration\npatches"
+}
+
+' Types de données
+class EntityUpdate {
+  +id : int
+  +r : byte
+  +g : byte
+  +b : byte
+  +w : byte
+}
+
+class DMXData {
+  +universe : int
+  +channel : int
+  +value : byte
+  +controllerIP : string
+}
+
+class ControllerConfig {
+  +ip : string
+  +universes : int[]
+  +startEntity : int
+  +endEntity : int
+}
+
+@enduml

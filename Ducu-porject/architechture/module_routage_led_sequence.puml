@@ -1,0 +1,66 @@
+@startuml
+!theme plain
+title Flux Temps Réel - Traitement des Messages eHuB
+
+actor "Artiste (Unity/Tan)" as Artist
+participant "EHubReceiver" as Receiver
+participant "EntityToDMXMapper" as Mapper
+participant "PatchMapHandler" as PatchHandler
+participant "ArtNetSender" as Sender
+participant "MonitoringVisualization" as Monitor
+
+== Initialisation ==
+Artist -> Receiver : Démarre l'écoute eHuB
+Receiver -> Monitor : Active monitoring eHuB
+Mapper -> PatchHandler : Charge les patches
+
+== Message CONFIG (1x/seconde) ==
+Artist -> Receiver : Message CONFIG eHuB
+activate Receiver
+Receiver -> Receiver : Décompresse payload GZip
+Receiver -> Receiver : Parse les plages d'entités
+Receiver -> Mapper : Met à jour la configuration
+activate Mapper
+Mapper -> Mapper : Valide le mapping
+Mapper -> Monitor : Affiche config reçue
+deactivate Mapper
+Receiver -> Monitor : Affiche données eHuB
+deactivate Receiver
+
+== Message UPDATE (40x/seconde) ==
+Artist -> Receiver : Message UPDATE eHuB
+activate Receiver
+Receiver -> Receiver : Décompresse payload GZip
+Receiver -> Receiver : Parse les entités (ID, RGBW)
+Receiver -> Mapper : Transmet EntityUpdate[]
+activate Mapper
+Receiver -> Monitor : Affiche données eHuB reçues
+
+Mapper -> Mapper : Mappe entités → DMX
+Mapper -> PatchHandler : Applique patches si activés
+activate PatchHandler
+PatchHandler -> PatchHandler : Redirige canaux défaillants
+PatchHandler -> Mapper : Retourne données patchées
+deactivate PatchHandler
+
+Mapper -> Sender : Envoie DMXData[]
+activate Sender
+Mapper -> Monitor : Affiche DMX généré
+deactivate Mapper
+
+Sender -> Sender : Limite le taux de trame
+Sender -> Sender : Groupe par contrôleur/univers
+loop Pour chaque contrôleur
+  Sender -> Sender : Crée packet ArtNet
+  Sender -> "Contrôleur BC216" : Envoie via UDP
+end
+Sender -> Monitor : Affiche trafic ArtNet
+deactivate Sender
+deactivate Receiver
+
+== Test et Débogage ==
+Monitor -> "TestGenerator" : Génère pattern de test
+"TestGenerator" -> Receiver : Simule messages eHuB
+note right : Permet de tester\nsans Unity
+
+@enduml
