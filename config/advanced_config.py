@@ -38,7 +38,7 @@ class AdvancedConfigManager(ConfigManager):
         """
         return SystemConfig(
             listen_port=8765,
-            ehub_universe=0,
+            ehub_universe=1,
             max_fps=40,
             controllers={
                 "controller1": ControllerConfig(

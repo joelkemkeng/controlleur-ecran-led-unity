@@ -27,21 +27,36 @@ def parse_header(data: bytes) -> dict:
         2
     """
     if len(data) < 10:
+        #print(f"\n\n\n\n\n\n DEBUG [Parsing_data] : la donnee ehub recu a moin de 10 Octets  : {data}")
         raise ValueError("Message trop court : moins de 10 octets")
+        
     if data[:4] != b'eHuB':
+        print(f"\n\n\n\n\n\n DEBUG [Parsing_data] : Signature eHuB invalide : {data[:4]}")
         raise ValueError("Signature eHuB invalide")
+    
+    #print(f"\n\n\n\n\n\n DEBUG [Parsing_data] : Taille et Signature eHuB valide : {data[:4]}")
+    
     msg_type = data[4]
     universe = data[5]
     entity_count = struct.unpack('<H', data[6:8])[0]
     payload_size = struct.unpack('<H', data[8:10])[0]
     payload = data[10:]
-    return {
+    
+    #print(f"\n\n\n\n\n\n DEBUG [Parsing_data] : - Type: {msg_type}, \n- Univers: {universe}, "
+    #      f"\n- Nombre d'entités: {entity_count}, \n- Taille du payload: {payload_size}, \n\n---> Payload messages : {payload}... )")
+    
+    data_returned = {
         'type': msg_type,
         'universe': universe,
         'entity_count': entity_count,
         'payload_size': payload_size,
         'payload': payload
     }
+
+    #print(f"\n\n\n\n\n\n DEBUG [Parsing_data] : Données retournées finales du parsing eHuB data : {data_returned}")
+
+    return data_returned
+        
 
 
 def decompress_payload(compressed_data: bytes) -> bytes:

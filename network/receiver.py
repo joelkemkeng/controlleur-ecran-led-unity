@@ -80,7 +80,12 @@ class EHubReceiver:
                 data, addr = self.socket.recvfrom(65536)
                 # On tente d'abord le parsing du header pour filtrer l'univers
                 from ehub.parser import parse_header
+                #print(f"\n\n\n\n\n\n DEBUG [data_config_reseau_ehub_primaire] #receiver.py : Données configuration primaire reseau reception ehub :: \n - data_port: {self.port} \n - data_universe: {self.universe}")
+                #print(f"\n\n\n\n\n\n DEBUG [data_ehub_recu] : Données brutes recu : {data}")
                 header = parse_header(data)
+                if header is None:
+                    print(f"\n\n\n\n\n\n DEBUG [EHubReceiver] #receiver.py : Erreur de parsing du header")
+                    continue
                 if header['universe'] != self.universe:
                     continue
                 if header['type'] == 2:
@@ -90,4 +95,4 @@ class EHubReceiver:
                     ranges = parse_config_message(data)
                     config_callback(ranges)
             except Exception as e:
-                print(f"[EHubReceiver] Erreur réception/parsing: {e}") 
+                print(f"[EHubReceiver] #receiver.py : Erreur réception/parsing: {e}")

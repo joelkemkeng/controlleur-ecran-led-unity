@@ -43,7 +43,7 @@ class ConfigManager:
         for name, ctrl in config_mgr.config.controllers.items():
             print(f"{name}: {ctrl.ip} ({ctrl.start_entity}-{ctrl.end_entity})")
     """
-    def __init__(self, config_file: str = "config.json"):
+    def __init__(self, config_file: str = "config/config.json"):
         self.config_file = config_file
         self.config = self.load_config()
 
@@ -51,10 +51,18 @@ class ConfigManager:
         try:
             with open(self.config_file, 'r') as f:
                 data = json.load(f)
+                #verifier si les donnee sont bien presente dans data
+                if not all(key in data for key in ['listen_port', 'ehub_universe', 'max_fps', 'controllers']):
+                    print(f"\n\n\n\n\n\n DEBUG [data_config_reseau_ehub_primaire_file_config] : Fichier de configuration invalide ou manquant : {self.config_file}")
+                    raise ValueError("Données de configuration manquantes")
+                
+                print(f"\n\n\n\n\n\n DEBUG [data_config_reseau_ehub_primaire_file_config] : Données configuration recuperer dans le fichier de configuration :: \n - data_port: {data['listen_port']} \n - data_universe: {data['ehub_universe']}, \n - data: {data}")
                 controllers = {
                     name: ControllerConfig(**ctrl)
                     for name, ctrl in data['controllers'].items()
                 }
+                
+                
                 return SystemConfig(
                     listen_port=data['listen_port'],
                     ehub_universe=data['ehub_universe'],

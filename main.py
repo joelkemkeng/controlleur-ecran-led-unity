@@ -239,11 +239,11 @@ class IntegratedLEDRouter:
         """
         try:
             self.monitor.log_ehub_data(entities)
-            print(f"[DEBUG] Entités reçues: {[e.id for e in entities[:10]]} ...")
+            #print(f"[DEBUG]  #main.py (handle_update) Entités reçues: {[e.id for e in entities[:10]]} ...")
             dmx_packets = self.mapper.map_entities_to_dmx(entities)
-            print(f"[DEBUG] Paquets DMX générés: {len(dmx_packets)}")
-            for pkt in dmx_packets[:5]:
-                print(f"  DMXPacket: IP={pkt.controller_ip}, U={pkt.universe}, Channels={list(pkt.channels.items())[:6]} ...")
+            #print(f"[DEBUG] #main.py (handle_update) Paquets DMX générés: {len(dmx_packets)}")
+            #for pkt in dmx_packets[:5]:
+                #print(f"  DMXPacket: IP={pkt.controller_ip}, U={pkt.universe}, Channels={list(pkt.channels.items())[:6]} ...")
             self.monitor.log_dmx_data(dmx_packets)
             patched_packets = self.patch_handler.apply_patches(dmx_packets)
             self.artnet_sender.send_dmx_packets(patched_packets)
