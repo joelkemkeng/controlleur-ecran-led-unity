@@ -7,10 +7,14 @@ import customtkinter as ctk
 from typing import Dict, Callable, Optional
 import sys
 import os
+import time
 
 # Import du gestionnaire de thèmes
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from utils.themes import get_theme_manager, get_current_colors, ThemeMode
+
+# Import de la page d'écran virtuel
+from .virtual_screen import MonitoringAdvancedPage
 
 class ModernSidebar(ctk.CTkFrame):
     """
@@ -62,6 +66,7 @@ class ModernSidebar(ctk.CTkFrame):
         nav_items = [
             ("dashboard", "⌂ Dashboard", "Vue d'ensemble des métriques"),
             ("monitoring", "◉ Monitoring", "Surveillance temps réel"),
+            ("virtual_screen", "🖥️ Écran Virtuel", "Affichage matriciel LED 128x128"),
             ("config", "⚙ Configuration", "Paramètres et réglages"),
             ("logs", "▤ Logs", "Historique et journaux"),
             ("diagnostics", "⚒ Diagnostics", "Tests et validation")
@@ -211,7 +216,7 @@ class ModernSidebar(ctk.CTkFrame):
 class MainWindow(ctk.CTk):
     """
     🏠 Fenêtre principale de l'application
-    Architecture moderne avec sidebar navigation
+    Architecture moderne avec sidebar navigation + monitoring intégré
     """
     
     def __init__(self):
@@ -228,11 +233,190 @@ class MainWindow(ctk.CTk):
         # Variables d'état
         self.current_page = "dashboard"
         
+        # 🔧 INTÉGRATION MONITORING
+        self.pipeline_monitor = None
+        self.metrics_collector = None
+        self.monitoring_active = False
+        self.update_job = None
+        
+        # 📈 Variables pour graphiques temps réel
+        self.main_chart = None
+        self.chart_update_timer = None
+        self.last_chart_update = 0
+        
         # Créer l'interface
         self._create_layout()
         self._create_content_area()
         
+        # Initialiser le monitoring
+        self._initialize_monitoring()
+        
         print("🏠 [MainWindow] Fenêtre principale initialisée")
+    
+    def _initialize_monitoring(self):
+        """🔧 Initialise le système de monitoring"""
+        try:
+            # Import des modules de monitoring
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'core'))
+            from pipeline_monitor import PipelineMonitor
+            from metrics_collector import MetricsCollector
+            
+            # Initialiser les composants
+            self.pipeline_monitor = PipelineMonitor()
+            self.metrics_collector = MetricsCollector(history_size=300)
+            
+            print("✅ [MainWindow] Monitoring initialisé")
+            
+        except Exception as e:
+            print(f"❌ [MainWindow] Erreur init monitoring: {e}")
+            # L'interface fonctionne quand même en mode mockup
+    
+    def _start_monitoring_updates(self):
+        """▶ Démarre les mises à jour temps réel de l'UI"""
+        if self.update_job:
+            return  # Déjà en cours
+        
+        def update_ui():
+            if self.monitoring_active and self.pipeline_monitor:
+                self._update_dashboard_with_real_data()
+            
+            # Programmer la prochaine mise à jour
+            self.update_job = self.after(1000, update_ui)  # 1 seconde
+        
+        self.update_job = self.after(100, update_ui)  # Démarrer dans 100ms
+        print("▶ [MainWindow] Mises à jour UI démarrées")
+    
+    def _stop_monitoring_updates(self):
+        """⏸ Arrête les mises à jour temps réel"""
+        if self.update_job:
+            self.after_cancel(self.update_job)
+            self.update_job = None
+        print("⏸ [MainWindow] Mises à jour UI arrêtées")
+    
+    def _update_dashboard_with_real_data(self):
+        """📊 Met à jour le dashboard avec les vraies données"""
+        if not self.pipeline_monitor:
+            return
+        
+        try:
+            # Récupérer les données du pipeline
+            monitoring_data = self.pipeline_monitor.get_current_data()
+            if monitoring_data:
+                # Ajouter aux métriques
+                self.metrics_collector.add_metric_point("packets_per_second", monitoring_data.packets_received)
+                self.metrics_collector.add_metric_point("entities_processed", monitoring_data.entities_processed)
+                self.metrics_collector.add_metric_point("latency_ms", monitoring_data.latency_ms)
+                self.metrics_collector.add_metric_point("bytes_per_second", monitoring_data.bytes_per_second)
+                self.metrics_collector.add_metric_point("errors_count", monitoring_data.errors_count)
+                self.metrics_collector.add_metric_point("controllers_active", monitoring_data.controllers_active)
+                
+                # Mettre à jour l'affichage si on est sur le dashboard
+                if self.current_page == "dashboard":
+                    self._refresh_dashboard_metrics(monitoring_data)
+            
+        except Exception as e:
+            print(f"❌ [MainWindow] Erreur mise à jour données: {e}")
+    
+    def _refresh_dashboard_metrics(self, data):
+        """🔄 Rafraîchit l'affichage des métriques du dashboard"""
+        try:
+            # Pour l'instant, mise à jour via console et stockage des données
+            # Les widgets seront mis à jour dynamiquement dans une version future
+            
+            # Stocker les dernières données pour l'affichage
+            if not hasattr(self, 'current_metrics'):
+                self.current_metrics = {}
+            
+            self.current_metrics.update({
+                'packets_per_second': data.packets_received,
+                'latency_ms': data.latency_ms,
+                'entities_processed': data.entities_processed,
+                'controllers_active': data.controllers_active,
+                'errors_count': data.errors_count,
+                'pipeline_status': data.pipeline_status,
+                'bytes_per_second': data.bytes_per_second
+            })
+            
+            # Mettre à jour le collecteur de métriques
+            if self.metrics_collector:
+                for metric_name, value in self.current_metrics.items():
+                    if isinstance(value, (int, float)):
+                        self.metrics_collector.add_metric_point(metric_name, float(value))
+            
+            # 📈 Mettre à jour le graphique principal si disponible
+            if hasattr(self, 'main_chart') and self.main_chart:
+                try:
+                    self.main_chart.update_data(data.timestamp, {
+                        'packets_per_second': float(data.packets_received),
+                        'latency_ms': float(data.latency_ms),
+                        'entities_processed': float(data.entities_processed) / 100.0  # Échelle pour visualisation
+                    })
+                except Exception as chart_error:
+                    print(f"⚠️ [Dashboard] Erreur mise à jour graphique: {chart_error}")
+            
+            # Log pour debug (sera remplacé par mise à jour UI)
+            print(f"📊 [Dashboard] Métriques: {data.packets_received} pkt/s, "
+                  f"{data.latency_ms:.1f}ms latence, {data.entities_processed} entités, "
+                  f"{data.controllers_active} contrôleurs, {data.errors_count} erreurs")
+            
+            # Mettre à jour le titre de status si nécessaire
+            if hasattr(self, 'status_label'):
+                colors = get_current_colors()
+                if data.errors_count > 0:
+                    status_text = f"⚠️ {data.errors_count} erreur(s)"
+                    status_color = colors["warning"]
+                elif self.monitoring_active:
+                    status_text = "● Monitoring actif" 
+                    status_color = colors["success"]
+                else:
+                    status_text = "● En ligne"
+                    status_color = colors["info"]
+                
+                self.status_label.configure(text=status_text, text_color=status_color)
+            
+        except Exception as e:
+            print(f"❌ [Dashboard] Erreur mise à jour métriques: {e}")
+
+    def _schedule_chart_updates(self):
+        """🔄 Programme les mises à jour automatiques des graphiques"""
+        if self.main_chart and self.monitoring_active:
+            try:
+                # Mettre à jour toutes les 2 secondes
+                current_time = time.time()
+                if current_time - self.last_chart_update >= 2.0:
+                    if hasattr(self, 'current_metrics') and self.current_metrics:
+                        # Utiliser les dernières métriques disponibles
+                        metrics_data = {
+                            'packets_per_second': self.current_metrics.get('packets_per_second', 0),
+                            'latency_ms': self.current_metrics.get('latency_ms', 0),
+                            'entities_processed': self.current_metrics.get('entities_processed', 0) / 100.0
+                        }
+                        self.main_chart.update_data(current_time, metrics_data)
+                        self.last_chart_update = current_time
+                
+                # Programmer la prochaine mise à jour
+                self.chart_update_timer = self.after(1000, self._schedule_chart_updates)
+                
+            except Exception as e:
+                print(f"⚠️ [Charts] Erreur programmation mise à jour: {e}")
+        else:
+            # Arrêter les mises à jour si pas de monitoring
+            if self.chart_update_timer:
+                self.after_cancel(self.chart_update_timer)
+                self.chart_update_timer = None
+    
+    def destroy(self):
+        """🔌 Nettoyage propre à la fermeture"""
+        print("🔌 [MainWindow] Fermeture en cours...")
+        
+        # Arrêter le monitoring
+        self._stop_monitoring_updates()
+        if self.pipeline_monitor:
+            self.pipeline_monitor.stop_monitoring()
+        
+        # Fermer la fenêtre
+        super().destroy()
+        print("🔌 [MainWindow] Fermé proprement")
     
     def _create_layout(self):
         """Création du layout principal"""
@@ -314,6 +498,7 @@ class MainWindow(ctk.CTk):
         page_titles = {
             "dashboard": "⌂ Dashboard",
             "monitoring": "◉ Monitoring Temps Réel", 
+            "virtual_screen": "🖥️ Écran Virtuel LED",
             "config": "⚙ Configuration",
             "logs": "▤ Logs & Historique",
             "diagnostics": "⚒ Diagnostics"
@@ -331,6 +516,8 @@ class MainWindow(ctk.CTk):
             self._show_dashboard_content()
         elif page_id == "monitoring":
             self._show_monitoring_content()
+        elif page_id == "virtual_screen":
+            self._show_virtual_screen_content()
         elif page_id == "config":
             self._show_config_content()
         elif page_id == "logs":
@@ -486,7 +673,7 @@ class MainWindow(ctk.CTk):
         trend_label.pack()
 
     def _create_chart_mockup_section(self, parent, colors):
-        """📈 Zone graphique mockup avec axes simulés"""
+        """📈 Zone graphique avec matplotlib intégré"""
         chart_frame = ctk.CTkFrame(
             parent,
             fg_color=colors["bg_secondary"],
@@ -497,13 +684,46 @@ class MainWindow(ctk.CTk):
         # Titre graphique
         chart_title = ctk.CTkLabel(
             chart_frame,
-            text="▲ Activité Pipeline (60s)",
+            text="▲ Activité Pipeline (Temps Réel)",
             font=ctk.CTkFont(size=16, weight="bold"),
             text_color=colors["text_primary"]
         )
         chart_title.pack(pady=(15, 10))
         
-        # Zone graphique simulée
+        try:
+            # Import du widget graphique
+            import sys
+            import os
+            chart_path = os.path.join(os.path.dirname(__file__), 'chart_widgets.py')
+            if os.path.exists(chart_path):
+                from ui.chart_widgets import create_monitoring_chart
+                
+                # Créer le graphique temps réel
+                self.main_chart = create_monitoring_chart(
+                    chart_frame, 
+                    chart_type="line",
+                    title="Métriques Pipeline",
+                    width=550,
+                    height=280
+                )
+                self.main_chart.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+                
+                # Démarrer l'animation
+                self.main_chart.start_animation(interval=2000)  # Mise à jour toutes les 2 secondes
+                
+                print("📈 [Dashboard] Graphique matplotlib intégré")
+            else:
+                # Fallback sur le mockup si le widget n'existe pas
+                self._create_chart_fallback(chart_frame, colors)
+                
+        except Exception as e:
+            print(f"❌ [Dashboard] Erreur graphique matplotlib: {e}")
+            # Fallback sur le mockup
+            self._create_chart_fallback(chart_frame, colors)
+    
+    def _create_chart_fallback(self, chart_frame, colors):
+        """Fallback mockup si matplotlib ne fonctionne pas"""
+        # Zone graphique simulée (code existant)
         chart_area = ctk.CTkFrame(
             chart_frame,
             fg_color=colors["bg_primary"],
@@ -644,21 +864,137 @@ class MainWindow(ctk.CTk):
             ).pack(side="left", padx=15)
     
     def _handle_quick_action(self, action):
-        """Gestionnaire des actions rapides"""
+        """🎛️ Gestionnaire des actions rapides connecté au monitoring"""
         print(f"⚡ [QuickAction] Action déclenchée: {action}")
         
-        # Pour l'instant, juste des logs - sera connecté au pipeline plus tard
-        action_messages = {
-            "start": "▶ Démarrage du monitoring...",
-            "pause": "⏸ Pause du monitoring...", 
-            "reset": "↻ Reset des statistiques...",
-            "test": "◉ Test du pipeline en cours...",
-            "config": "⚙ Ouverture configuration...",
-            "reports": "📊 Génération des rapports..."
-        }
+        try:
+            if action == "start":
+                self._start_pipeline_monitoring()
+            elif action == "pause":
+                self._pause_pipeline_monitoring()
+            elif action == "reset":
+                self._reset_monitoring_stats()
+            elif action == "test":
+                self._test_pipeline()
+            elif action == "config":
+                self._open_configuration()
+            elif action == "reports":
+                self._generate_reports()
+            else:
+                print(f"⚠️ [QuickAction] Action non reconnue: {action}")
         
-        message = action_messages.get(action, f"Action: {action}")
-        print(f"💬 [Dashboard] {message}")
+        except Exception as e:
+            print(f"❌ [QuickAction] Erreur action {action}: {e}")
+    
+    def _start_pipeline_monitoring(self):
+        """▶ Démarre le monitoring du pipeline"""
+        if self.monitoring_active:
+            print("⚠️ [Monitoring] Déjà en cours")
+            return
+        
+        if not self.pipeline_monitor:
+            print("❌ [Monitoring] Pipeline monitor non initialisé")
+            return
+        
+        try:
+            # Démarrer le monitoring pipeline
+            success = self.pipeline_monitor.start_monitoring()
+            if success:
+                self.monitoring_active = True
+                self._start_monitoring_updates()
+                self._schedule_chart_updates()  # 📈 Démarrer les mises à jour des graphiques
+                print("✅ [Monitoring] Pipeline démarré avec succès")
+                
+                # Mettre à jour le status dans l'UI
+                colors = get_current_colors()
+                self.status_label.configure(text="● Monitoring actif", text_color=colors["success"])
+                
+                # Mettre à jour les boutons
+                self._update_monitoring_buttons_state(True)
+            else:
+                print("❌ [Monitoring] Échec démarrage pipeline")
+                
+        except Exception as e:
+            print(f"❌ [Monitoring] Erreur démarrage: {e}")
+    
+    def _pause_pipeline_monitoring(self):
+        """⏸ Met en pause le monitoring"""
+        if not self.monitoring_active:
+            print("⚠️ [Monitoring] Pas en cours")
+            return
+        
+        try:
+            self.pipeline_monitor.stop_monitoring()
+            self.monitoring_active = False
+            self._stop_monitoring_updates()
+            
+            # 📈 Arrêter les mises à jour des graphiques
+            if self.chart_update_timer:
+                self.after_cancel(self.chart_update_timer)
+                self.chart_update_timer = None
+                
+            print("⏸ [Monitoring] Pipeline mis en pause")
+            
+            # Mettre à jour le status dans l'UI
+            colors = get_current_colors()
+            self.status_label.configure(text="⏸ En pause", text_color=colors["warning"])
+            
+            # Mettre à jour les boutons
+            self._update_monitoring_buttons_state(False)
+            
+        except Exception as e:
+            print(f"❌ [Monitoring] Erreur pause: {e}")
+    
+    def _update_monitoring_buttons_state(self, is_active: bool):
+        """Met à jour l'état visuel des boutons selon le monitoring"""
+        # Cette méthode sera appelée pour changer l'apparence des boutons
+        # Peut être étendue plus tard pour désactiver/activer certains boutons
+        pass
+    
+    def _reset_monitoring_stats(self):
+        """↻ Reset les statistiques"""
+        try:
+            if self.pipeline_monitor:
+                self.pipeline_monitor.send_command({"action": "reset_stats"})
+            
+            if self.metrics_collector:
+                self.metrics_collector.clear_metrics()
+            
+            print("✅ [Monitoring] Statistiques remises à zéro")
+            
+        except Exception as e:
+            print(f"❌ [Monitoring] Erreur reset: {e}")
+    
+    def _test_pipeline(self):
+        """◉ Test du pipeline"""
+        try:
+            if self.pipeline_monitor:
+                self.pipeline_monitor.send_command({"action": "test_pipeline"})
+                print("◉ [Pipeline] Test en cours...")
+            else:
+                print("⚠️ [Pipeline] Monitor non disponible pour test")
+                
+        except Exception as e:
+            print(f"❌ [Pipeline] Erreur test: {e}")
+    
+    def _open_configuration(self):
+        """⚙ Ouvre la page de configuration"""
+        self._on_page_change("config")
+        print("⚙ [Navigation] Ouverture page configuration")
+    
+    def _generate_reports(self):
+        """📊 Génère les rapports"""
+        try:
+            if self.metrics_collector:
+                stats = self.metrics_collector.get_statistics_summary()
+                print("📊 [Reports] Génération rapport...")
+                for metric, data in stats.items():
+                    print(f"   {metric}: {data['current']:.1f} (trend: {data['trend']})")
+            else:
+                print("⚠️ [Reports] Collecteur métriques non disponible")
+                
+        except Exception as e:
+            print(f"❌ [Reports] Erreur génération: {e}")
     
     def _show_placeholder_content(self, page_id: str):
         """Contenu placeholder pour les pages en développement"""
@@ -705,6 +1041,35 @@ class MainWindow(ctk.CTk):
     # Méthodes placeholder pour les autres pages
     def _show_monitoring_content(self):
         self._show_placeholder_content("monitoring")
+    
+    def _show_virtual_screen_content(self):
+        """🖥️ Affiche la page d'écran virtuel LED"""
+        try:
+            # Créer la page d'écran virtuel
+            self.virtual_screen_page = MonitoringAdvancedPage(
+                self.content_area,
+                fg_color="transparent"
+            )
+            self.virtual_screen_page.pack(fill="both", expand=True)
+            
+            # Démarrer le monitoring automatiquement
+            self.virtual_screen_page.start_monitoring()
+            
+            # Connecter au pipeline de données si disponible
+            if hasattr(self, 'pipeline_monitor') and self.pipeline_monitor:
+                # Connecter les données ArtNet simulées à l'écran virtuel
+                def artnet_data_callback(universe, channel_data):
+                    if self.virtual_screen_page and self.virtual_screen_page.virtual_screen:
+                        self.virtual_screen_page.update_artnet_data(universe, channel_data)
+                
+                self.pipeline_monitor.set_artnet_callback(artnet_data_callback)
+                print("📡 [MainWindow] Pipeline ArtNet connecté à l'écran virtuel")
+            
+            print("🖥️ [MainWindow] Page d'écran virtuel chargée")
+            
+        except Exception as e:
+            print(f"❌ [MainWindow] Erreur chargement écran virtuel: {e}")
+            self._show_placeholder_content("virtual_screen")
     
     def _show_config_content(self):
         self._show_placeholder_content("config")
