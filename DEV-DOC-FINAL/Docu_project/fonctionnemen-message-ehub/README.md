@@ -120,6 +120,6 @@ Le mapping CONFIG permet de savoir que la position 0 du payload UPDATE correspon
 
 ## 8. Pour aller plus loin
 
-- Voir le fichier Excel `/asset-execices/Ecran.xlsx` pour la correspondance complète entités/univers/contrôleurs
-- Voir les exemples de messages binaires dans `/asset-execices/sample-messages-ehub.txt`
+- Voir le fichier Excel `/assets/data_config/Ecran.xlsx` pour la correspondance complète entités/univers/contrôleurs
+- Voir les exemples de messages binaires dans `/assets/data_config/sample-messages-ehub.txt`
 - Voir la doc technique du projet pour les détails sur le protocole eHuB 

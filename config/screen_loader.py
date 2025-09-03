@@ -24,7 +24,13 @@ class ScreenConfigLoader:
     Garde les choses simples et testables
     """
     
-    def __init__(self, excel_file: str = "Ducu-porject/asset-execices/Ecran.xlsx"):
+    def __init__(self, excel_file: str = None):
+        if excel_file is None:
+            # Déterminer le chemin absolu vers le fichier Excel
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(current_dir)  # Remonter 1 niveau depuis /config
+            excel_file = os.path.join(project_root, "assets", "data_config", "Ecran.xlsx")
+            
         self.excel_file = excel_file
         self.mappings: List[LEDMapping] = []
         self.controllers: Dict[str, int] = {}  # IP -> nombre d'entités

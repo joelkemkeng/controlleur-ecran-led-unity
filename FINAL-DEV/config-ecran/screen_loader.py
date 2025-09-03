@@ -30,7 +30,7 @@ class ScreenConfigLoader:
             # Déterminer le chemin absolu vers le fichier Excel
             current_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(os.path.dirname(current_dir))  # Remonter 2 niveaux
-            excel_file = os.path.join(project_root, "Ducu-porject", "asset-execices", "Ecran.xlsx")
+            excel_file = os.path.join(project_root, "assets", "data_config", "Ecran.xlsx")
             
         self.excel_file = excel_file
         self.mappings: List[LEDMapping] = []

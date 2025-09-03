@@ -58,7 +58,7 @@ class LEDMapping:
 ### Mapping Entités
 - **Total** : 16577 entités eHuB (100-19577)
 - **Format** : Chaque entité → 3 canaux DMX (R,G,B)
-- **Fichier** : `/Ducu-porject/asset-execices/Ecran.xlsx`
+- **Fichier** : `/assets/data_config/Ecran.xlsx`
 
 ## 🔄 Flux de Données
 
