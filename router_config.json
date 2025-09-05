@@ -1,0 +1,28 @@
+{
+  "routers": [
+    {
+      "name": "Routeur 1",
+      "ip": "192.168.1.45",
+      "enabled": true,
+      "port": 6447
+    },
+    {
+      "name": "Routeur 2",
+      "ip": "192.168.1.46",
+      "enabled": true,
+      "port": 6436
+    },
+    {
+      "name": "Routeur 3",
+      "ip": "192.168.1.47",
+      "enabled": true,
+      "port": 6456
+    },
+    {
+      "name": "Routeur 4",
+      "ip": "192.168.1.48",
+      "enabled": true,
+      "port": 6454
+    }
+  ]
+}

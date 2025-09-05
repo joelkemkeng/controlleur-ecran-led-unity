@@ -40,17 +40,19 @@ class EHubReceiver:
         print(f"🌐 [EHubReceiver] Initialisation récepteur eHub")
         print(f"📡 [EHubReceiver] Port: {port}, IP: {bind_ip}")
     
-    def get_wsl_ip(self) -> str:
+    def get_local_ip(self) -> str:
         """
-        Récupère l'IP WSL pour info utilisateur
+        Récupère l'IP locale pour info utilisateur (Windows compatible)
         """
         try:
-            result = subprocess.run(['hostname', '-I'], capture_output=True, text=True)
-            wsl_ip = result.stdout.strip().split()[0]
-            print(f"🔍 [EHubReceiver] IP WSL détectée: {wsl_ip}")
-            return wsl_ip
+            import socket
+            # Méthode compatible Windows/Linux
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+            print(f"🔍 [EHubReceiver] IP locale détectée: {local_ip}")
+            return local_ip
         except Exception as e:
-            print(f"⚠️  [EHubReceiver] Impossible de détecter IP WSL: {e}")
+            print(f"⚠️  [EHubReceiver] Impossible de détecter IP locale: {e}")
             return "IP_NON_DETECTEE"
     
     def start_listening(self) -> bool:
@@ -74,9 +76,9 @@ class EHubReceiver:
             print(f"👂 [EHubReceiver] Écoute sur {self.bind_ip}:{self.port}")
             
             # Affichage info pour Unity
-            wsl_ip = self.get_wsl_ip()
+            local_ip = self.get_local_ip()
             print(f"📋 [EHubReceiver] ===== CONFIGURATION UNITY =====")
-            print(f"📋 [EHubReceiver] IP cible Unity: {wsl_ip}")
+            print(f"📋 [EHubReceiver] IP cible Unity: {local_ip}")
             print(f"📋 [EHubReceiver] Port cible Unity: {self.port}")
             print(f"📋 [EHubReceiver] ===============================")
             

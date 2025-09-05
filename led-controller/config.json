@@ -1,0 +1,68 @@
+{
+  "network": {
+    "default_port": 6454,
+    "timeout": 5.0,
+    "retry_attempts": 3
+  },
+  "controllers": [
+    {
+      "name": "Controller 1",
+      "ip": "192.168.1.100",
+      "port": 6454,
+      "universe": 1,
+      "protocol": "eHuB",
+      "enabled": true
+    },
+    {
+      "name": "Controller 2",
+      "ip": "192.168.1.101",
+      "port": 6454,
+      "universe": 2,
+      "protocol": "eHuB",
+      "enabled": true
+    }
+  ],
+  "led_screen": {
+    "width": 128,
+    "height": 128,
+    "refresh_rate": 30,
+    "brightness": 100
+  },
+  "animations": {
+    "default_fps": 30,
+    "max_frames": 1000,
+    "auto_save": true
+  },
+  "ui": {
+    "theme": "dark",
+    "window_size": "1200x800",
+    "language": "fr"
+  },
+  "protocols": {
+    "eHuB": {
+      "enabled": true,
+      "compression": false,
+      "priority": 1
+    },
+    "custom": {
+      "enabled": false,
+      "compression": true,
+      "priority": 2
+    }
+  },
+  "ehub": {
+    "port": 8765,
+    "universe": 1
+  },
+  "sender_mode": "simulator",
+  "controllers_production": [
+    "192.168.1.45",
+    "192.168.1.46",
+    "192.168.1.47",
+    "192.168.1.48"
+  ],
+  "mapping_rules": [],
+  "patch_map": {},
+  "patching_enabled": false,
+  "rate_limit_hz": 40.0
+}

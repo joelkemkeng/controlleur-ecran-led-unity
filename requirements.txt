@@ -1,5 +1,38 @@
-# Dépendances minimales pour le projet LED Router
-# Compatible Raspberry Pi (ARM, Python 3.7+)
-pandas>=1.1.0
-pytest>=6.0.0
-# dataclasses est inclus nativement à partir de Python 3.7 
+# Dépendances complètes pour le projet LED Router
+# Compatible Windows et Linux (Python 3.7+)
+
+# =============================================================================
+# DÉPENDANCES OBLIGATOIRES (pour fonctionnement du projet)
+# =============================================================================
+
+# Lecture fichiers Excel (configuration écran)
+pandas>=1.5.0
+openpyxl>=3.0.0
+
+# Tests unitaires  
+pytest>=7.0.0
+
+# =============================================================================
+# MODULES PYTHON STANDARD (inclus avec Python, pas besoin d'installer)
+# =============================================================================
+# gzip - Décompression des messages eHub
+# struct - Manipulation données binaires
+# socket - Communication UDP/ArtNet  
+# time - Timestamps et délais
+# datetime - Gestion dates/heures
+# dataclasses - Classes de données (Python 3.7+)
+# typing - Annotations de type
+# sys - Chemins système
+# os - Opérations système
+# pathlib - Manipulation chemins (Python 3.4+)
+# subprocess - Exécution commandes
+# threading - Multithreading si nécessaire
+# unittest - Tests unitaires alternatifs
+
+# =============================================================================
+# DÉPENDANCES OPTIONNELLES (pour développement/debug)
+# =============================================================================
+# ipython>=7.0.0       # Console interactive améliorée
+# jupyter>=1.0.0       # Notebooks pour analyses
+# matplotlib>=3.0.0    # Visualisation données (debug)
+# numpy>=1.19.0        # Calculs numériques (optimisations futures) 

@@ -6,9 +6,11 @@ Test simple et clair pour valider le chargement de configuration
 
 import sys
 import os
-sys.path.append('/home/joel/projet_ecran/controlleur-ecran-led-unity')
+# Ajouter le chemin du module parent (Windows compatible)
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, parent_dir)
 
-from config.screen_loader import ScreenConfigLoader
+from screen_loader import ScreenConfigLoader
 
 def test_etape_1_2():
     """

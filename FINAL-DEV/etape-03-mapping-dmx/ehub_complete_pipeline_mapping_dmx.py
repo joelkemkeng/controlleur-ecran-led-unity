@@ -9,9 +9,13 @@ import sys
 import time
 from dataclasses import dataclass
 from typing import List, Dict, Optional, Tuple
+import os
+from pathlib import Path
 
-# Import du pipeline étape 2 validé
-sys.path.append('/home/joel/projet_ecran/controlleur-ecran-led-unity/FINAL-DEV/etape-02-decodage-ehub')
+# Import du pipeline étape 2 validé (Windows compatible)
+current_dir = Path(__file__).parent
+etape2_path = current_dir.parent / "etape-02-decodage-ehub"
+sys.path.insert(0, str(etape2_path))
 from ehub_complete_pipeline_decoder import EHubDecoder, EHubEntity, EHubPacket
 
 @dataclass

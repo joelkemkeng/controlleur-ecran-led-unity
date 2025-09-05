@@ -12,9 +12,12 @@ from typing import List, Optional, Dict
 import sys
 import os
 
-# Ajouter les chemins pour intégrer les étapes précédentes
-sys.path.append('/home/joel/projet_ecran/controlleur-ecran-led-unity/FINAL-DEV/etape-00-reception-ehub')
-sys.path.append('/home/joel/projet_ecran/controlleur-ecran-led-unity/FINAL-DEV/config-ecran')
+# Ajouter les chemins pour intégrer les étapes précédentes (Windows compatible)
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(os.path.join(project_root, 'etape-00-reception-ehub'))
+sys.path.append(os.path.join(project_root, 'config-ecran'))
 
 from ehub_receiver import EHubReceiver, EHubMessage
 from screen_loader import ScreenConfigLoader, LEDMapping
